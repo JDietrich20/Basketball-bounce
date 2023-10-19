@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <script src = "https://cdn.jsdelivr.net/npm/three@0.101.1/build/three.min.js"></script>
+        <script src = "https://cdn.jsdelivr.net/npm/three@0.101.1/examples/js/controls/OrbitControls.js"></script>
+        
+        <script>
+            window.onload = generate;//once window is loaded, run the generate() function
+
+            let renderer, camera, scene; //variables to set up the scene
+            let bx, by, dx, dy, g, damp; //variables for the ball and its falling trajectory
+            let time; //variable for time
+            let ball; 
+
+            var audio = document.createElement("audio")
+            audio.src = "./assets/soundB.mp3"
+
+            function generate()
+            {
+                //renderer
+                renderer = new THREE.WebGLRenderer()
+                renderer.setSize(600,600)
+                renderer.shadowMap.enabled = true
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap
+                document.body.appendChild(renderer.domElement)
+
+                //scene 
+                scene = new THREE.Scene()
+                    //basket ball
+                    bball = new THREE.TextureLoader().load('./assets/ball.png')//downloads the texture of the ball
+                    let bballMaterial = new THREE.MeshPhongMaterial({//creates the material for the ball
+                        map: bball,
+                    })
+                    ball = new THREE.Mesh(new THREE.SphereGeometry(1.5, 100, 100), bballMaterial) //creates the ball
+                    ball.castShadow = true  //ball casts a shadow
+                    ball.receiveShadow = false //ball receives a shadow
+                    scene.add(ball) //add ball to scene 
+
+                    //power outlet 
+                    router = new THREE.TextureLoader().load('./assets/route.png') //creates/imitates outlet from reference video
+                    materialP = new THREE.MeshPhongMaterial({
+                        map: router,
+                        color: "white"
+                    })
+                    let outlet = new THREE.Mesh(new THREE.BoxGeometry(0.8,1.2,0.2), materialP)//creates the outlet
+                    outlet.rotation.set(0, 0, 0)
+                    outlet.position.set(5, -2.6, -6)
+                    outlet.receiveShadow = true
+                    outlet.receiveShadow = true
+                    scene.add(outlet)
+
+                    let outletDetail = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.2), materialP)//small detail of the outlet
+                    outletDetail.rotation.set(0, 0, 0)
+                    outletDetail.position.set(5, -2.6, -5.9)
+                    outletDetail.receiveShadow = true
+                    outletDetail.receiveShadow = true
+                    scene.add(outletDetail)
+
+                    //floor
+                    tiles = new THREE.TextureLoader().load('./assets/tiles.png')//creates the floor/tiles from reference video
+                    materialF = new THREE.MeshPhongMaterial({
+                        map: tiles,
+                        color: "#cabbb5"
+                    })
+                    let floor = new THREE.Mesh(new THREE.PlaneGeometry(19,10), materialF)
+                    floor.rotation.set(-1/2* Math.PI, 0, 0) //rotates and sets up the floors position
+                    floor.position.set(0, -6, -1)
+                    floor.receiveShadow = true
+                    scene.add(floor)
+
+                    //wall
+                    grunge = new THREE.TextureLoader().load('./assets/wallA.jpg')//creates the wall from reference video
+                    materialW = new THREE.MeshPhongMaterial({
+                        map: grunge,
+                        color:"#af884f"
+                    })
+                    let wall = new THREE.Mesh(new THREE.PlaneGeometry(18,16), materialW)
+                    wall.rotation.set(0, 0, 0)
+                    wall.position.set(0, 0, -6)
+                    wall.receiveShadow = true
+                    wall.receiveShadow = true
+                    scene.add(wall)
+
+
+                //camera
+                camera = new THREE.PerspectiveCamera(30,1,0.1,1000)
+                camera.position.set(0,3,25)
+                camera.lookAt(scene.position)
+
+                controls = new THREE.OrbitControls(camera, renderer.domElement) //allows the camera to orbit around the scene
+
+                
+
+                //lighting 
+                    const ambient = new THREE.AmbientLight(0xffffff, 0.5)//creates ambient light to bring the image more to life
+                    scene.add(ambient)
+
+   
+                    
+                    const spotlight = new THREE.PointLight(0xffffff, 1.5, 60, 2)//creates pointlight 
+                    spotlight.position.set(0,15,1)
+                    spotlight.shadow.mapSize.width = 1000 //makes the shadow less pixely
+                    spotlight.shadow.mapSize.height = 1000
+                    spotlight.castShadow = true
+                    spotlight.shadow.camera.near = 0.5
+                    spotlight.shadow.camera.far = 25
+                    scene.add(spotlight)
+                
+
+                //ball variables 
+                g = -1.49 //gravity
+                damp = 0.57 //dampening
+                bx = -6 //starting ball x position
+                by = 30 //starting ball y position
+                dx = 0.003 //change in x
+                dy = 0 //change in y
+                time = 3 //time
+
+                animate()
+            }
+
+            function animate(now)
+            {
+                requestAnimationFrame(animate)
+                controls.update()
+
+                if(!now)//if now is undefined, set it to 0
+                    now = 0;
+
+
+                ball.position.set(bx, by, 0);//sets the ball position to the variables
+                dx = (now - time)/1000;//change in x
+                time = now;//sets time to now
+                bx += 3*dx;//adds the change in x to the ball x position
+                by += 0.9 * dy;//adds the change in y to the ball y position
+                dy += g * dx;//adds the change in y to the change in x
+                if(by < -4.5)//if the ball is below the floor
+                {
+                    by = -4.5;//set the ball y position to the floor 
+                    if (Math.abs(dy) < -g/9) //if the change in y is less than the gravity divided by 9
+                    {
+                        dy = 0; //set the change in y to 0
+                        g = 0; //set the gravity to 0
+                    }
+                    else //if the change in y is greater than the gravity divided by 9
+                        dy = -dy * damp; //set the change in y to the change in y times the dampening
+
+                    audio.playbackRate = 3.6 
+                    audio.play() //play sound effect
+                
+                }
+
+                if(ball.position.x > 9) //if the ball is off the screen reload the window to loop the animation
+                {
+                    window.location.reload(true)
+                    
+                }
+
+
+                ball.rotation.z -= 0.03 //ball physics of the ball spinning upon bounce 
+
+                renderer.setClearColor("white")
+                renderer.render(scene, camera)
+            }
+
+
+        </script>
+    </body>
+    
+</html>
